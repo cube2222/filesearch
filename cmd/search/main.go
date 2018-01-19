@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
-	"github.com/blevesearch/bleve"
-	"fmt"
 	"path"
+
+	"github.com/blevesearch/bleve"
+	"github.com/ryanuber/columnize"
 )
 
 var indexPath = "C:/tmp/index.bleve"
@@ -29,7 +31,7 @@ func main() {
 	q := bleve.NewFuzzyQuery(os.Args[1])
 	q.SetFuzziness(2)
 	r := bleve.NewSearchRequest(q)
-	r.Fields = []string{"name", "path"}
+	r.Fields = []string{"name", "path", "content"}
 	res, err := index.Search(r)
 	if err != nil {
 		log.Fatal(err)
@@ -38,16 +40,22 @@ func main() {
 
 	q2 := bleve.NewPrefixQuery(os.Args[1])
 	r2 := bleve.NewSearchRequest(q2)
-	r2.Fields = []string{"name", "path"}
+	r2.Fields = []string{"name", "path", "content"}
 	res2, err := index.Search(r2)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	outLines := []string{"Name\tPath"}
+
 	for _, hit := range res.Hits {
-		fmt.Printf("%v Path: %v\n", path.Base(hit.Fields["path"].(string)), hit.Fields["path"])
+		outLines = append(outLines, fmt.Sprintf("%v\t%v", path.Base(hit.Fields["path"].(string)), hit.Fields["path"]))
 	}
 	for _, hit := range res2.Hits {
-		fmt.Printf("%v Path: %v\n", path.Base(hit.Fields["path"].(string)), hit.Fields["path"])
+		outLines = append(outLines, fmt.Sprintf("%v\t%v", path.Base(hit.Fields["path"].(string)), hit.Fields["path"]))
 	}
+
+	conf := columnize.DefaultConfig()
+	conf.Delim = "\t"
+	fmt.Print(columnize.Format(outLines, conf))
 }
